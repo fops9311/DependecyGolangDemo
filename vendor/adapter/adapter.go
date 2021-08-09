@@ -1,13 +1,14 @@
 package adapter
 
-type Adapter struct {
-	name string
-}
+func New() (func() (out <-chan interface{}), func(string)) {
+	var outDone chan interface{}
 
-func New(name string) *Adapter {
-	port := Adapter{name: "The adapter"}
-	return &port
-}
-func (p Adapter) GetData() (data string) {
-	return "some data from " + p.name
+	Pipeline := func() (out <-chan interface{}) {
+		outDone = make(chan interface{})
+		return outDone
+	}
+	SendData := func(data string) {
+		outDone <- data
+	}
+	return Pipeline, SendData
 }

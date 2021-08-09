@@ -1,19 +1,26 @@
 package port
 
-import (
-	ad "adapter"
-	"strings"
-)
-
-type Port struct {
-	adapter *ad.Adapter
+type Port interface {
+	Pipeline(<-chan interface{}) <-chan interface{}
 }
 
-func New() *Port {
-	adapter := ad.New("P1")
-	port := Port{adapter: adapter}
-	return &port
+type ImplPort struct {
+	Transform func(string) string
 }
-func (a Port) GetModifiedData() (data string) {
-	return strings.ToUpper(a.adapter.GetData()) + " THROUGH THE PORT"
+
+func (h *ImplPort) Pipeline(in <-chan interface{}, inDone <-chan interface{}) (out <-chan interface{}, done <-chan interface{}) {
+	outC := make(chan interface{})
+	outDone := make(chan interface{})
+	go func() {
+		for {
+			select {
+			case rec := <-in:
+				outC <- h.Transform((rec).(string))
+			case <-inDone:
+				close(outDone)
+				return
+			}
+		}
+	}()
+	return outC, outDone
 }
